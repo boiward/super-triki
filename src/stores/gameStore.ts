@@ -136,6 +136,7 @@ export const useGameStore = defineStore('game', () => {
     board.value         = state.board
     inventories.value   = state.inventories as Record<Player, Piece[]>
     currentPlayer.value = state.currentPlayer
+    if (state.players) players.value = state.players as Player[]
     winResult.value     = null
     isDraw.value        = false
   }

@@ -1,6 +1,6 @@
 import type { Board, Piece, Size, WinResult } from '@/types/game'
 
-export type PlayerSlot = 1 | 2
+export type PlayerSlot = 1 | 2 | 3 | 4
 
 // ── Client → Server ──────────────────────────────────────────────
 
@@ -34,6 +34,7 @@ export interface ClientToServerEvents {
   'room:join':   (payload: { roomId: string; username: string }, ack: (res: RoomJoinAck) => void) => void
   'game:move':   (payload: GameMovePayload, ack: (res: GameMoveAck) => void) => void
   'game:rematch':(payload: { roomId: string }) => void
+  'game:start':  (payload: { roomId: string }) => void
 }
 
 // ── Server → Client ──────────────────────────────────────────────
@@ -45,9 +46,10 @@ export interface PlayerInfo {
 }
 
 export interface RoomStateSnapshot {
-  roomId:  string
-  players: PlayerInfo[]
-  phase:   'waiting' | 'playing' | 'finished'
+  roomId:      string
+  players:     PlayerInfo[]
+  phase:       'waiting' | 'playing' | 'finished'
+  playerCount: number
 }
 
 export interface GameStateSnapshot {
@@ -55,6 +57,7 @@ export interface GameStateSnapshot {
   inventories:   Record<PlayerSlot, Piece[]>
   currentPlayer: PlayerSlot
   moveNumber:    number
+  players:       PlayerSlot[]
 }
 
 export interface GameOverPayload {

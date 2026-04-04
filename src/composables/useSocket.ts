@@ -77,5 +77,9 @@ export function useSocket() {
     socket.emit('game:rematch', { roomId })
   }
 
-  return { emitCreateRoom, emitJoinRoom, emitMove, emitRematch }
+  function emitStart(roomId: string): void {
+    socket.emit('game:start', { roomId })
+  }
+
+  return { emitCreateRoom, emitJoinRoom, emitMove, emitRematch, emitStart }
 }

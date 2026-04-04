@@ -3,12 +3,13 @@ import { ref } from 'vue'
 import type { PlayerInfo, PlayerSlot, RoomStateSnapshot } from '@/types/socket'
 
 export const useRoomStore = defineStore('room', () => {
-  const roomId      = ref<string | null>(null)
-  const phase       = ref<'idle' | 'waiting' | 'playing' | 'finished'>('idle')
-  const mySlot      = ref<PlayerSlot | null>(null)
-  const players     = ref<PlayerInfo[]>([])
+  const roomId       = ref<string | null>(null)
+  const phase        = ref<'idle' | 'waiting' | 'playing' | 'finished'>('idle')
+  const mySlot       = ref<PlayerSlot | null>(null)
+  const players      = ref<PlayerInfo[]>([])
+  const playerCount  = ref(0)
   const opponentLeft = ref(false)
-  const error       = ref<string | null>(null)
+  const error        = ref<string | null>(null)
 
   function setFromAck(ackRoomId: string, slot: PlayerSlot) {
     roomId.value = ackRoomId
@@ -17,9 +18,10 @@ export const useRoomStore = defineStore('room', () => {
   }
 
   function setRoomState(snapshot: RoomStateSnapshot) {
-    roomId.value  = snapshot.roomId
-    phase.value   = snapshot.phase
-    players.value = snapshot.players
+    roomId.value      = snapshot.roomId
+    phase.value       = snapshot.phase
+    players.value     = snapshot.players
+    playerCount.value = snapshot.playerCount
   }
 
   function setPhase(p: typeof phase.value) {
@@ -46,12 +48,13 @@ export const useRoomStore = defineStore('room', () => {
     phase.value        = 'idle'
     mySlot.value       = null
     players.value      = []
+    playerCount.value  = 0
     opponentLeft.value = false
     error.value        = null
   }
 
   return {
-    roomId, phase, mySlot, players, opponentLeft, error,
+    roomId, phase, mySlot, players, playerCount, opponentLeft, error,
     setFromAck, setRoomState, setPhase, addPlayer, setOpponentLeft, setError, reset,
   }
 })

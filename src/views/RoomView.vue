@@ -1,10 +1,10 @@
 <template>
   <div class="room">
 
-    <!-- ── Lobby: waiting for second player ── -->
+    <!-- ── Lobby: waiting for players ── -->
     <div v-if="roomStore.phase === 'waiting'" class="lobby">
       <h2 class="lobby__title">Sala creada</h2>
-      <p class="lobby__hint">Comparte el código con tu oponente</p>
+      <p class="lobby__hint">Comparte el código con tus amigos</p>
 
       <div class="lobby__code">{{ roomId }}</div>
 
@@ -12,9 +12,33 @@
         {{ copied ? 'Enlace copiado!' : 'Copiar enlace' }}
       </button>
 
-      <div class="lobby__waiting">
+      <div class="lobby__players">
+        <span
+          v-for="p in roomStore.players"
+          :key="p.slot"
+          class="lobby__player-chip"
+          :style="{ background: gameStore.playerMeta[p.slot]?.color }"
+        >
+          {{ p.username }}{{ p.slot === roomStore.mySlot ? ' (tú)' : '' }}
+        </span>
+        <span v-for="n in (4 - roomStore.playerCount)" :key="'empty-' + n" class="lobby__player-chip lobby__player-chip--empty">
+          —
+        </span>
+      </div>
+
+      <p class="lobby__count">{{ roomStore.playerCount }}/4 jugadores</p>
+
+      <button
+        v-if="roomStore.mySlot === 1 && roomStore.playerCount >= 2"
+        class="lobby__start-btn"
+        @click="handleStart"
+      >
+        Iniciar partida
+      </button>
+
+      <div v-else class="lobby__waiting">
         <span class="lobby__dot" />
-        Esperando oponente...
+        {{ roomStore.mySlot === 1 ? 'Esperando más jugadores...' : 'Esperando que el creador inicie...' }}
       </div>
     </div>
 
@@ -27,10 +51,16 @@
         </span>
       </header>
 
-      <main class="room__main">
-        <PlayerPanel :player="1" :my-slot="roomStore.mySlot" />
+      <main class="room__main" :class="`room__main--${gameStore.players.length}p`">
+        <div class="room__side room__side--left">
+          <PlayerPanel :player="gameStore.players[0]" :my-slot="roomStore.mySlot" />
+          <PlayerPanel v-if="gameStore.players[2]" :player="gameStore.players[2]" :my-slot="roomStore.mySlot" />
+        </div>
         <Board />
-        <PlayerPanel :player="2" :my-slot="roomStore.mySlot" />
+        <div class="room__side room__side--right">
+          <PlayerPanel v-if="gameStore.players[1]" :player="gameStore.players[1]" :my-slot="roomStore.mySlot" />
+          <PlayerPanel v-if="gameStore.players[3]" :player="gameStore.players[3]" :my-slot="roomStore.mySlot" />
+        </div>
       </main>
 
       <GameStatus @rematch="handleRematch" />
@@ -68,7 +98,7 @@ const router    = useRouter()
 const roomStore = useRoomStore()
 const gameStore = useGameStore()
 const userStore = useUserStore()
-const { emitJoinRoom, emitRematch } = useSocket()
+const { emitJoinRoom, emitRematch, emitStart } = useSocket()
 
 const roomId = computed(() => route.params.id as string)
 const copied = ref(false)
@@ -80,8 +110,8 @@ const turnColor = computed(() => {
 
 const turnLabel = computed(() => {
   if (!roomStore.mySlot) return ''
-  return gameStore.currentPlayer === roomStore.mySlot ? 'Tu turno' :
-    roomStore.players.find(p => p.slot !== roomStore.mySlot)?.username ?? 'Oponente'
+  if (gameStore.currentPlayer === roomStore.mySlot) return 'Tu turno'
+  return roomStore.players.find(p => p.slot === gameStore.currentPlayer)?.username ?? 'Oponente'
 })
 
 onMounted(async () => {
@@ -117,6 +147,10 @@ function copyLink() {
 
 function handleRematch() {
   if (roomStore.roomId) emitRematch(roomStore.roomId)
+}
+
+function handleStart() {
+  if (roomStore.roomId) emitStart(roomStore.roomId)
 }
 
 function goHome() {
@@ -183,6 +217,51 @@ function goHome() {
   background: rgba(255,255,255,0.05);
 }
 
+.lobby__players {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lobby__player-chip {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.lobby__player-chip--empty {
+  background: var(--cell-border) !important;
+  color: #555;
+  text-shadow: none;
+}
+
+.lobby__count {
+  color: #888;
+  font-size: 13px;
+  margin: 0;
+}
+
+.lobby__start-btn {
+  padding: 12px 36px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #457b9d, #e63946);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.lobby__start-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
 .lobby__waiting {
   display: flex;
   align-items: center;
@@ -221,6 +300,12 @@ function goHome() {
   gap: 24px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.room__side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* ── Disconnect overlay ── */
