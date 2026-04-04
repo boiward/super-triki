@@ -1,0 +1,57 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import type { PlayerInfo, PlayerSlot, RoomStateSnapshot } from '@/types/socket'
+
+export const useRoomStore = defineStore('room', () => {
+  const roomId      = ref<string | null>(null)
+  const phase       = ref<'idle' | 'waiting' | 'playing' | 'finished'>('idle')
+  const mySlot      = ref<PlayerSlot | null>(null)
+  const players     = ref<PlayerInfo[]>([])
+  const opponentLeft = ref(false)
+  const error       = ref<string | null>(null)
+
+  function setFromAck(ackRoomId: string, slot: PlayerSlot) {
+    roomId.value = ackRoomId
+    mySlot.value = slot
+    error.value  = null
+  }
+
+  function setRoomState(snapshot: RoomStateSnapshot) {
+    roomId.value  = snapshot.roomId
+    phase.value   = snapshot.phase
+    players.value = snapshot.players
+  }
+
+  function setPhase(p: typeof phase.value) {
+    phase.value = p
+  }
+
+  function addPlayer(info: PlayerInfo) {
+    if (!players.value.find(p => p.slot === info.slot)) {
+      players.value.push(info)
+    }
+  }
+
+  function setOpponentLeft() {
+    opponentLeft.value = true
+    phase.value = 'finished'
+  }
+
+  function setError(msg: string | null) {
+    error.value = msg
+  }
+
+  function reset() {
+    roomId.value       = null
+    phase.value        = 'idle'
+    mySlot.value       = null
+    players.value      = []
+    opponentLeft.value = false
+    error.value        = null
+  }
+
+  return {
+    roomId, phase, mySlot, players, opponentLeft, error,
+    setFromAck, setRoomState, setPhase, addPlayer, setOpponentLeft, setError, reset,
+  }
+})

@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Board, Piece, Player, Size, WinResult, DragPayload } from '@/types/game'
+import type { GameStateSnapshot, GameOverPayload } from '@/types/socket'
 import { SIZE_ORDER } from '@/types/game'
 import { getAllLines, emptyBoard } from '@/utils/boardUtils'
 import { detectWin, detectDraw } from '@/composables/useWinDetection'
+import { getSocket } from '@/services/socket'
+import { useRoomStore } from '@/stores/roomStore'
 
 const PIECES_PER_SIZE = 3
 
@@ -80,6 +83,23 @@ export const useGameStore = defineStore('game', () => {
     targetCol: number
     targetSize: Size
   }): boolean {
+    const roomStore = useRoomStore()
+
+    // ── Multiplayer path: emit to server, server broadcasts back ──
+    if (roomStore.roomId) {
+      getSocket().emit('game:move', {
+        roomId:     roomStore.roomId,
+        pieceId:    payload.pieceId,
+        targetRow:  payload.targetRow,
+        targetCol:  payload.targetCol,
+        targetSize: payload.targetSize,
+      }, res => {
+        if (!res.ok) roomStore.setError(res.error ?? 'Move rejected')
+      })
+      return true
+    }
+
+    // ── Solo path: original local logic ──────────────────────────
     const { pieceId, targetRow, targetCol, targetSize } = payload
 
     if (isGameOver.value) return false
@@ -108,6 +128,25 @@ export const useGameStore = defineStore('game', () => {
 
     _advanceTurn()
     return true
+  }
+
+  // ── Server state application ─────────────────────────────────
+
+  function applyServerState(state: GameStateSnapshot): void {
+    board.value         = state.board
+    inventories.value   = state.inventories as Record<Player, Piece[]>
+    currentPlayer.value = state.currentPlayer
+    winResult.value     = null
+    isDraw.value        = false
+  }
+
+  function applyGameOver(result: GameOverPayload): void {
+    applyServerState(result.finalState)
+    if (result.winResult) {
+      winResult.value = result.winResult
+    } else {
+      isDraw.value = true
+    }
   }
 
   function _advanceTurn() {
@@ -139,5 +178,7 @@ export const useGameStore = defineStore('game', () => {
     resetGame,
     placePiece,
     setDragState,
+    applyServerState,
+    applyGameOver,
   }
 })

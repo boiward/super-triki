@@ -6,8 +6,8 @@
   >
     <div class="player-panel__header">
       <span class="player-panel__dot" />
-      <span class="player-panel__name">{{ meta.label }}</span>
-      <span v-if="isActive" class="player-panel__turn">Tu turno</span>
+      <span class="player-panel__name">{{ displayName }}</span>
+      <span v-if="isActive" class="player-panel__turn">{{ isMe ? 'Tu turno' : 'Su turno' }}</span>
     </div>
 
     <div v-for="size in SIZE_ORDER" :key="size" class="player-panel__group">
@@ -28,16 +28,30 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Player, Size } from '@/types/game'
+import type { PlayerSlot } from '@/types/socket'
 import { SIZE_ORDER } from '@/types/game'
 import { useGameStore } from '@/stores/gameStore'
+import { useRoomStore } from '@/stores/roomStore'
+import { useUserStore } from '@/stores/userStore'
 import Piece from './Piece.vue'
 
-const props = defineProps<{ player: Player }>()
+const props = defineProps<{ player: Player; mySlot?: PlayerSlot | null }>()
 
-const store = useGameStore()
+const store     = useGameStore()
+const roomStore = useRoomStore()
+const userStore = useUserStore()
 
 const isActive = computed(() => store.currentPlayer === props.player && !store.isGameOver)
 const meta = computed(() => store.playerMeta[props.player])
+
+const isMe = computed(() => props.mySlot === props.player)
+
+const displayName = computed(() => {
+  if (!roomStore.roomId) return meta.value.label
+  const playerInfo = roomStore.players.find(p => p.slot === props.player)
+  if (playerInfo) return playerInfo.username + (isMe.value ? ' (tú)' : '')
+  return isMe.value ? (userStore.username ?? meta.value.label) + ' (tú)' : meta.value.label
+})
 const inventory = computed(() => store.inventories[props.player] ?? [])
 
 const sizeNames: Record<Size, string> = { large: 'Grandes', medium: 'Medianas', small: 'Pequeñas' }

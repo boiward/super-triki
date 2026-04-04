@@ -16,7 +16,7 @@
           <h2 class="overlay__title">Empate</h2>
           <p class="overlay__condition">No quedan movimientos posibles</p>
         </div>
-        <button class="overlay__btn" @click="store.resetGame()">Jugar de nuevo</button>
+        <button class="overlay__btn" @click="emit('rematch')">Jugar de nuevo</button>
       </div>
     </div>
   </Transition>
@@ -27,6 +27,7 @@ import { computed } from 'vue'
 import { useGameStore } from '@/stores/gameStore'
 
 const store = useGameStore()
+const emit = defineEmits<{ rematch: [] }>()
 
 const winnerLabel = computed(() => {
   if (!store.winResult) return ''
