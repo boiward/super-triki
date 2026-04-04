@@ -1,0 +1,19 @@
+:root {
+  --player-1-color: #e63946;
+  --player-2-color: #457b9d;
+  --player-3-color: #2a9d8f;
+  --player-4-color: #e9c46a;
+
+  /* Piece sizes match the ring-slot areas in Cell.vue:
+     large slot=84px, medium slot=56px, small slot=28px */
+  --size-large:  76px;
+  --size-medium: 48px;
+  --size-small:  22px;
+
+  --slot-win-glow: 0 0 14px 4px gold;
+
+  --board-bg: #1a1a2e;
+  --cell-bg:  #16213e;
+  --cell-border: #0f3460;
+  --text-primary: #e0e0e0;
+}
