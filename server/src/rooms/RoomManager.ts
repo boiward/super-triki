@@ -1,10 +1,13 @@
 import type { PlayerSlot } from '../types/game.js'
-import type { PlayerInfo, RoomStateSnapshot } from '../types/socket.js'
+import type { PlayerInfo, PublicRoomInfo, RoomStateSnapshot } from '../types/socket.js'
 import type { RoomGameState } from '../engine/GameEngine.js'
 import { generateRoomCode } from './roomUtils.js'
 
 export interface RoomState {
   roomId:      string
+  name:        string
+  isPrivate:   boolean
+  password?:   string
   players:     PlayerInfo[]
   phase:       'waiting' | 'playing' | 'finished'
   game:        RoomGameState | null
@@ -14,16 +17,24 @@ export interface RoomState {
 }
 
 const rooms = new Map<string, RoomState>()
-// Index socketId → roomId for fast disconnect lookup
 const socketToRoom = new Map<string, string>()
 
 export const RoomManager = {
-  createRoom(username: string, socketId: string): RoomState {
+  createRoom(
+    username: string,
+    socketId: string,
+    name: string,
+    isPrivate: boolean,
+    password?: string,
+  ): RoomState {
     let roomId: string
     do { roomId = generateRoomCode() } while (rooms.has(roomId))
 
     const room: RoomState = {
       roomId,
+      name:        name.trim() || `Sala de ${username}`,
+      isPrivate,
+      password:    isPrivate ? password : undefined,
       players:     [{ slot: 1, username, socketId }],
       phase:       'waiting',
       game:        null,
@@ -36,14 +47,23 @@ export const RoomManager = {
     return room
   },
 
-  joinRoom(roomId: string, username: string, socketId: string): RoomState | null {
+  joinRoom(
+    roomId: string,
+    username: string,
+    socketId: string,
+    password?: string,
+  ): { ok: true; room: RoomState } | { ok: false; error: string } {
     const room = rooms.get(roomId)
-    if (!room || room.phase !== 'waiting' || room.players.length >= 4) return null
+    if (!room)                         return { ok: false, error: 'Sala no encontrada' }
+    if (room.phase !== 'waiting')      return { ok: false, error: room.phase === 'finished' ? 'La sala ha terminado' : 'La partida ya comenzó' }
+    if (room.players.length >= 4)      return { ok: false, error: 'Sala llena' }
+    if (room.isPrivate && room.password && room.password !== password)
+                                       return { ok: false, error: 'Contraseña incorrecta' }
 
     const slot = (room.players.length + 1) as PlayerSlot
     room.players.push({ slot, username, socketId })
     socketToRoom.set(socketId, roomId)
-    return room
+    return { ok: true, room }
   },
 
   getRoom(roomId: string): RoomState | undefined {
@@ -71,7 +91,6 @@ export const RoomManager = {
     room.players = room.players.filter(p => p.socketId !== socketId)
     socketToRoom.delete(socketId)
 
-    // Mark room as finished; schedule cleanup
     room.phase = 'finished'
     setTimeout(() => {
       if (rooms.get(room.roomId)?.players.length === 0) {
@@ -109,9 +128,22 @@ export const RoomManager = {
     return room.players[room.roundNumber % room.players.length].slot
   },
 
+  getPublicRooms(): PublicRoomInfo[] {
+    return Array.from(rooms.values())
+      .filter(r => !r.isPrivate && r.phase !== 'finished')
+      .map(r => ({
+        roomId:      r.roomId,
+        name:        r.name,
+        playerCount: r.players.length,
+        phase:       r.phase as 'waiting' | 'playing',
+      }))
+  },
+
   toSnapshot(room: RoomState): RoomStateSnapshot {
     return {
       roomId:      room.roomId,
+      name:        room.name,
+      isPrivate:   room.isPrivate,
       players:     room.players,
       phase:       room.phase,
       playerCount: room.players.length,

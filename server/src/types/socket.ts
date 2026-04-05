@@ -2,7 +2,12 @@ import type { Board, Piece, Size, WinResult, PlayerSlot } from './game.js'
 
 // ── Client → Server ──────────────────────────────────────────────
 
-export interface RoomCreatePayload { username: string }
+export interface RoomCreatePayload {
+  username:  string
+  name:      string
+  isPrivate: boolean
+  password?: string
+}
 export interface RoomCreateAck {
   ok: boolean
   roomId?: string
@@ -10,7 +15,11 @@ export interface RoomCreateAck {
   error?: string
 }
 
-export interface RoomJoinPayload { roomId: string; username: string }
+export interface RoomJoinPayload {
+  roomId:    string
+  username:  string
+  password?: string
+}
 export interface RoomJoinAck {
   ok: boolean
   roomId?: string
@@ -28,7 +37,7 @@ export interface GameMovePayload {
 }
 export interface GameMoveAck { ok: boolean; error?: string }
 
-export interface RematchPayload { roomId: string }
+export interface RematchPayload  { roomId: string }
 export interface GameStartPayload { roomId: string }
 
 export interface ClientToServerEvents {
@@ -37,6 +46,7 @@ export interface ClientToServerEvents {
   'game:move':   (payload: GameMovePayload,   ack: (res: GameMoveAck)   => void) => void
   'game:rematch':(payload: RematchPayload) => void
   'game:start':  (payload: GameStartPayload) => void
+  'rooms:get':   (ack: (rooms: PublicRoomInfo[]) => void) => void
 }
 
 // ── Server → Client ──────────────────────────────────────────────
@@ -49,11 +59,20 @@ export interface PlayerInfo {
 
 export interface RoomStateSnapshot {
   roomId:      string
+  name:        string
+  isPrivate:   boolean
   players:     PlayerInfo[]
   phase:       'waiting' | 'playing' | 'finished'
   playerCount: number
   scores:      Record<number, number>
   roundNumber: number
+}
+
+export interface PublicRoomInfo {
+  roomId:      string
+  name:        string
+  playerCount: number
+  phase:       'waiting' | 'playing'
 }
 
 export interface GameStateSnapshot {
@@ -70,9 +89,10 @@ export interface GameOverPayload {
 }
 
 export interface ServerToClientEvents {
-  'room:state':    (state: RoomStateSnapshot)    => void
-  'game:state':    (state: GameStateSnapshot)    => void
-  'game:over':     (result: GameOverPayload)     => void
+  'room:state':    (state: RoomStateSnapshot)       => void
+  'game:state':    (state: GameStateSnapshot)       => void
+  'game:over':     (result: GameOverPayload)        => void
+  'rooms:list':    (rooms: PublicRoomInfo[])        => void
   'player:joined': (payload: { username: string; slot: PlayerSlot }) => void
   'player:left':   (payload: { username: string; slot: PlayerSlot; permanent: boolean }) => void
   'error':         (payload: { code: string; message: string }) => void

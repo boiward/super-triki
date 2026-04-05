@@ -45,7 +45,7 @@
     <!-- ── Game ── -->
     <template v-else-if="roomStore.phase === 'playing' || roomStore.phase === 'finished'">
       <header class="room__header">
-        <span class="room__code">Sala: {{ roomId }}</span>
+        <span class="room__code">{{ roomStore.name || roomId }} <span class="room__id">#{{ roomId }}</span></span>
         <span class="room__turn" v-if="!gameStore.isGameOver">
           Turno: <strong :style="{ color: turnColor }">{{ turnLabel }}</strong>
         </span>
@@ -296,7 +296,8 @@ function goHome() {
   color: #666;
 }
 
-.room__code { font-weight: 600; letter-spacing: 1px; }
+.room__code { font-weight: 600; }
+.room__id   { font-weight: 400; color: #555; font-size: 11px; letter-spacing: 1px; }
 
 .room__main {
   display: flex;

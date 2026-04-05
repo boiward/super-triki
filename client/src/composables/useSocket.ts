@@ -2,18 +2,20 @@ import { onMounted, onUnmounted } from 'vue'
 import { getSocket } from '@/services/socket'
 import { useRoomStore } from '@/stores/roomStore'
 import { useGameStore } from '@/stores/gameStore'
-import type {
-  GameMovePayload,
-  RoomCreateAck,
-  RoomJoinAck,
-} from '@/types/socket'
+import { useLobbyStore } from '@/stores/lobbyStore'
+import type { GameMovePayload, RoomJoinAck } from '@/types/socket'
 
 export function useSocket() {
-  const socket    = getSocket()
-  const roomStore = useRoomStore()
-  const gameStore = useGameStore()
+  const socket     = getSocket()
+  const roomStore  = useRoomStore()
+  const gameStore  = useGameStore()
+  const lobbyStore = useLobbyStore()
 
   function registerListeners() {
+    socket.on('rooms:list', rooms => {
+      lobbyStore.setRooms(rooms)
+    })
+
     socket.on('room:state', snapshot => {
       roomStore.setRoomState(snapshot)
     })
@@ -42,6 +44,7 @@ export function useSocket() {
   }
 
   function removeListeners() {
+    socket.off('rooms:list')
     socket.off('room:state')
     socket.off('game:state')
     socket.off('game:over')
@@ -55,21 +58,15 @@ export function useSocket() {
 
   // ── Typed emit helpers ───────────────────────────────────────
 
-  function emitCreateRoom(username: string): Promise<RoomCreateAck> {
+  function emitJoinRoom(roomId: string, username: string, password?: string): Promise<RoomJoinAck> {
     return new Promise(resolve => {
-      socket.emit('room:create', { username }, resolve)
-    })
-  }
-
-  function emitJoinRoom(roomId: string, username: string): Promise<RoomJoinAck> {
-    return new Promise(resolve => {
-      socket.emit('room:join', { roomId, username }, resolve)
+      socket.emit('room:join', { roomId, username, password }, resolve)
     })
   }
 
   function emitMove(payload: GameMovePayload): void {
     socket.emit('game:move', payload, res => {
-      if (!res.ok) roomStore.setError(res.error ?? 'Move rejected')
+      if (!res.ok) roomStore.setError(res.error ?? 'Movimiento rechazado')
     })
   }
 
@@ -81,5 +78,5 @@ export function useSocket() {
     socket.emit('game:start', { roomId })
   }
 
-  return { emitCreateRoom, emitJoinRoom, emitMove, emitRematch, emitStart }
+  return { emitJoinRoom, emitMove, emitRematch, emitStart }
 }
