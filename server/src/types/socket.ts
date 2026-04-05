@@ -52,6 +52,8 @@ export interface RoomStateSnapshot {
   players:     PlayerInfo[]
   phase:       'waiting' | 'playing' | 'finished'
   playerCount: number
+  scores:      Record<number, number>
+  roundNumber: number
 }
 
 export interface GameStateSnapshot {

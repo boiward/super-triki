@@ -4,11 +4,13 @@ import type { RoomGameState } from '../engine/GameEngine.js'
 import { generateRoomCode } from './roomUtils.js'
 
 export interface RoomState {
-  roomId:    string
-  players:   PlayerInfo[]
-  phase:     'waiting' | 'playing' | 'finished'
-  game:      RoomGameState | null
-  createdAt: number
+  roomId:      string
+  players:     PlayerInfo[]
+  phase:       'waiting' | 'playing' | 'finished'
+  game:        RoomGameState | null
+  createdAt:   number
+  scores:      Record<number, number>
+  roundNumber: number
 }
 
 const rooms = new Map<string, RoomState>()
@@ -22,10 +24,12 @@ export const RoomManager = {
 
     const room: RoomState = {
       roomId,
-      players: [{ slot: 1, username, socketId }],
-      phase: 'waiting',
-      game: null,
-      createdAt: Date.now(),
+      players:     [{ slot: 1, username, socketId }],
+      phase:       'waiting',
+      game:        null,
+      createdAt:   Date.now(),
+      scores:      {},
+      roundNumber: 0,
     }
     rooms.set(roomId, room)
     socketToRoom.set(socketId, roomId)
@@ -81,9 +85,28 @@ export const RoomManager = {
   setGame(roomId: string, game: RoomGameState): void {
     const room = rooms.get(roomId)
     if (room) {
-      room.game = game
+      room.game  = game
       room.phase = 'playing'
     }
+  },
+
+  initScores(roomId: string, slots: PlayerSlot[]): void {
+    const room = rooms.get(roomId)
+    if (!room) return
+    slots.forEach(s => { if (room.scores[s] === undefined) room.scores[s] = 0 })
+  },
+
+  addScore(roomId: string, slot: PlayerSlot): void {
+    const room = rooms.get(roomId)
+    if (!room) return
+    room.scores[slot] = (room.scores[slot] ?? 0) + 1
+  },
+
+  nextRound(roomId: string): PlayerSlot | null {
+    const room = rooms.get(roomId)
+    if (!room || room.players.length === 0) return null
+    room.roundNumber++
+    return room.players[room.roundNumber % room.players.length].slot
   },
 
   toSnapshot(room: RoomState): RoomStateSnapshot {
@@ -92,6 +115,8 @@ export const RoomManager = {
       players:     room.players,
       phase:       room.phase,
       playerCount: room.players.length,
+      scores:      room.scores,
+      roundNumber: room.roundNumber,
     }
   },
 }

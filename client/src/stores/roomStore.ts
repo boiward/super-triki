@@ -8,6 +8,8 @@ export const useRoomStore = defineStore('room', () => {
   const mySlot       = ref<PlayerSlot | null>(null)
   const players      = ref<PlayerInfo[]>([])
   const playerCount  = ref(0)
+  const scores       = ref<Record<number, number>>({})
+  const roundNumber  = ref(0)
   const opponentLeft = ref(false)
   const error        = ref<string | null>(null)
 
@@ -22,6 +24,8 @@ export const useRoomStore = defineStore('room', () => {
     phase.value       = snapshot.phase
     players.value     = snapshot.players
     playerCount.value = snapshot.playerCount
+    scores.value      = snapshot.scores
+    roundNumber.value = snapshot.roundNumber
   }
 
   function setPhase(p: typeof phase.value) {
@@ -49,12 +53,14 @@ export const useRoomStore = defineStore('room', () => {
     mySlot.value       = null
     players.value      = []
     playerCount.value  = 0
+    scores.value       = {}
+    roundNumber.value  = 0
     opponentLeft.value = false
     error.value        = null
   }
 
   return {
-    roomId, phase, mySlot, players, playerCount, opponentLeft, error,
+    roomId, phase, mySlot, players, playerCount, scores, roundNumber, opponentLeft, error,
     setFromAck, setRoomState, setPhase, addPlayer, setOpponentLeft, setError, reset,
   }
 })

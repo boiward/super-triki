@@ -27,7 +27,7 @@ function buildInventory(slot: PlayerSlot): Piece[] {
   return pieces
 }
 
-export function buildInitialGameState(playerCount: number): RoomGameState {
+export function buildInitialGameState(playerCount: number, startingPlayer: PlayerSlot = 1): RoomGameState {
   const players = Array.from({ length: playerCount }, (_, i) => (i + 1) as PlayerSlot)
   const inventories = Object.fromEntries(
     players.map(slot => [slot, buildInventory(slot)])
@@ -36,7 +36,7 @@ export function buildInitialGameState(playerCount: number): RoomGameState {
   return {
     board:         emptyBoard() as Board,
     inventories,
-    currentPlayer: 1,
+    currentPlayer: startingPlayer,
     moveNumber:    0,
     winResult:     null,
     isDraw:        false,

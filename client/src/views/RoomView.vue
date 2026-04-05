@@ -56,7 +56,10 @@
           <PlayerPanel :player="gameStore.players[0]" :my-slot="roomStore.mySlot" />
           <PlayerPanel v-if="gameStore.players[2]" :player="gameStore.players[2]" :my-slot="roomStore.mySlot" />
         </div>
-        <Board />
+        <div class="room__center">
+          <Board />
+          <Scoreboard />
+        </div>
         <div class="room__side room__side--right">
           <PlayerPanel v-if="gameStore.players[1]" :player="gameStore.players[1]" :my-slot="roomStore.mySlot" />
           <PlayerPanel v-if="gameStore.players[3]" :player="gameStore.players[3]" :my-slot="roomStore.mySlot" />
@@ -92,6 +95,7 @@ import { connectSocket, disconnectSocket } from '@/services/socket'
 import Board from '@/components/Board.vue'
 import PlayerPanel from '@/components/PlayerPanel.vue'
 import GameStatus from '@/components/GameStatus.vue'
+import Scoreboard from '@/components/Scoreboard.vue'
 
 const route     = useRoute()
 const router    = useRouter()
@@ -300,6 +304,13 @@ function goHome() {
   gap: 24px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.room__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
 .room__side {

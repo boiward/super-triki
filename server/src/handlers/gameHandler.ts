@@ -1,5 +1,6 @@
 import type { Server, Socket } from 'socket.io'
 import type { ClientToServerEvents, ServerToClientEvents } from '../types/socket.js'
+import type { PlayerSlot } from '../types/game.js'
 import { RoomManager } from '../rooms/RoomManager.js'
 import {
   buildInitialGameState,
@@ -78,6 +79,8 @@ export function registerGameHandler(io: TypedServer, socket: TypedSocket): void 
 
     if (room.players.length < 2) return
 
+    const slots = room.players.map(p => p.slot)
+    RoomManager.initScores(roomId, slots)
     const game = buildInitialGameState(room.players.length)
     RoomManager.setGame(roomId, game)
     io.to(roomId).emit('room:state', RoomManager.toSnapshot(room))
@@ -112,6 +115,10 @@ export function registerGameHandler(io: TypedServer, socket: TypedSocket): void 
 
     if (newState.winResult || newState.isDraw) {
       room.phase = 'finished'
+      if (newState.winResult) {
+        RoomManager.addScore(payload.roomId, newState.winResult.winner as PlayerSlot)
+      }
+      io.to(payload.roomId).emit('room:state', RoomManager.toSnapshot(room))
       io.to(payload.roomId).emit('game:over', {
         winResult:  newState.winResult,
         finalState: toSnapshot(newState),
@@ -124,7 +131,8 @@ export function registerGameHandler(io: TypedServer, socket: TypedSocket): void 
     const room = RoomManager.getRoom(roomId)
     if (!room || room.players.length < 2) return
 
-    const game = buildInitialGameState(room.players.length)
+    const startingPlayer = RoomManager.nextRound(roomId) ?? 1
+    const game = buildInitialGameState(room.players.length, startingPlayer)
     RoomManager.setGame(roomId, game)
     io.to(roomId).emit('room:state', RoomManager.toSnapshot(room))
     io.to(roomId).emit('game:state', toSnapshot(game))
