@@ -23,7 +23,7 @@
           v-if="pieceOfSet('large', i)"
           v-draggable="dragPayload(pieceOfSet('large', i)!)"
           class="stack-ring stack-ring--large"
-          :class="`stack-ring--player${player}`"
+          :class="[`stack-ring--player${player}`, { 'stack-ring--locked': !canDrag }]"
           :title="`Grande (J${player})`"
         />
         <div v-else class="stack-ring stack-ring--large stack-ring--used" />
@@ -33,7 +33,7 @@
           v-if="pieceOfSet('medium', i)"
           v-draggable="dragPayload(pieceOfSet('medium', i)!)"
           class="stack-ring stack-ring--medium"
-          :class="`stack-ring--player${player}`"
+          :class="[`stack-ring--player${player}`, { 'stack-ring--locked': !canDrag }]"
           :title="`Mediana (J${player})`"
         />
         <div v-else class="stack-ring stack-ring--medium stack-ring--used" />
@@ -43,7 +43,7 @@
           v-if="pieceOfSet('small', i)"
           v-draggable="dragPayload(pieceOfSet('small', i)!)"
           class="stack-ring stack-ring--small"
-          :class="`stack-ring--player${player}`"
+          :class="[`stack-ring--player${player}`, { 'stack-ring--locked': !canDrag }]"
           :title="`Pequeña (J${player})`"
         />
         <div v-else class="stack-ring stack-ring--small stack-ring--used" />
@@ -67,9 +67,17 @@ const store     = useGameStore()
 const roomStore = useRoomStore()
 const userStore = useUserStore()
 
-const isActive = computed(() => store.currentPlayer === props.player && !store.isGameOver)
-const meta     = computed(() => store.playerMeta[props.player])
-const isMe     = computed(() => props.mySlot === props.player)
+const isActive  = computed(() => store.currentPlayer === props.player && !store.isGameOver)
+const meta      = computed(() => store.playerMeta[props.player])
+const isMe      = computed(() => props.mySlot === props.player)
+
+// Can drag: must be my piece (in multiplayer) AND my turn
+const canDrag = computed(() => {
+  if (store.isGameOver) return false
+  if (store.currentPlayer !== props.player) return false
+  if (roomStore.roomId) return roomStore.mySlot === props.player
+  return true
+})
 
 const displayName = computed(() => {
   if (!roomStore.roomId) return meta.value.label
@@ -203,7 +211,14 @@ function dragPayload(piece: Piece): DragPayload {
 .stack-ring--player3 { border-color: var(--player-3-color); box-shadow: 0 0 5px var(--player-3-color); }
 .stack-ring--player4 { border-color: var(--player-4-color); box-shadow: 0 0 5px var(--player-4-color); }
 
-.stack-ring:not(.stack-ring--used):hover {
+/* Locked: not your turn or not your pieces */
+.stack-ring--locked {
+  cursor: not-allowed;
+  opacity: 0.45;
+  filter: grayscale(0.4);
+}
+
+.stack-ring:not(.stack-ring--used):not(.stack-ring--locked):hover {
   filter: brightness(1.4);
   transform: translate(-50%, -50%) scale(1.08);
 }

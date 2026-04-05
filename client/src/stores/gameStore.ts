@@ -43,6 +43,9 @@ export const useGameStore = defineStore('game', () => {
     if (!dragState.value) return false
     if (dragState.value.player !== currentPlayer.value) return false
     if (dragState.value.size !== size) return false
+    const roomStore = useRoomStore()
+    // In multiplayer: only accept drops from my own pieces
+    if (roomStore.roomId && roomStore.mySlot !== dragState.value.player) return false
     return board.value[row][col][size] === null
   }
 
